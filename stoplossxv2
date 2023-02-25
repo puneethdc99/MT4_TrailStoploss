@@ -91,4 +91,26 @@ void OnTick()
             
             // Check for stop loss level
             if (Price >= OrderStopLoss()) {
-                OrderClose(Ticket, Lots, Price, 
+                OrderClose(Ticket, Lots, Price, 0, Red);
+                
+        }
+}
+}
+}
+
+// Initialize variables
+void OnInit()
+{
+// Get entry price
+if (OrdersTotal() > 0) {
+int Ticket = OrderSelect(OrdersTotal() - 1, SELECT_BY_POS, MODE_TRADES);
+if (OrderType() == OP_BUY) {
+Entry_Price = OrderOpenPrice();
+Trailing_Stop_Level = Entry_Price - Trailing_Stop_Distance * Point;
+}
+else if (OrderType() == OP_SELL) {
+Entry_Price = OrderOpenPrice();
+Trailing_Stop_Level = Entry_Price + Trailing_Stop_Distance * Point;
+}
+}
+}        
