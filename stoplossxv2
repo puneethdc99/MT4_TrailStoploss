@@ -1,0 +1,94 @@
+// Define inputs
+extern double Lots = 0.1;
+extern double Stop_Loss = 50;
+extern double Take_Profit = 100;
+extern bool Trailing_Stop = true;
+extern int Trailing_Stop_Distance = 30;
+
+// Declare variables
+double Entry_Price;
+double Trailing_Stop_Level;
+
+// Define entry and exit rules
+void OnTick()
+{
+    // Get current price
+    double Price = Ask;
+    
+    // Check for long entry conditions
+    if (High[1] < Entry_Price && High[0] >= Entry_Price) {
+        
+        // Open long position
+        OrderSend(Symbol(), OP_BUY, Lots, Price, 0, Price - Stop_Loss * Point, Price + Take_Profit * Point);
+        
+        // Calculate trailing stop level
+        Trailing_Stop_Level = Price - Trailing_Stop_Distance * Point;
+        
+        // Enable trailing stop
+        if (Trailing_Stop) {
+            OrderModify(OrderTicket(), 0, Trailing_Stop_Level, Stop_Loss * Point, 0, Green);
+        }
+        
+        // Save entry price
+        Entry_Price = High[0];
+    }
+    
+    // Check for short entry conditions
+    if (Low[1] > Entry_Price && Low[0] <= Entry_Price) {
+        
+        // Open short position
+        OrderSend(Symbol(), OP_SELL, Lots, Price, 0, Price + Stop_Loss * Point, Price - Take_Profit * Point);
+        
+        // Calculate trailing stop level
+        Trailing_Stop_Level = Price + Trailing_Stop_Distance * Point;
+        
+        // Enable trailing stop
+        if (Trailing_Stop) {
+            OrderModify(OrderTicket(), 0, Trailing_Stop_Level, Stop_Loss * Point, 0, Red);
+        }
+        
+        // Save entry price
+        Entry_Price = Low[0];
+    }
+    
+    // Check for open position
+    if (OrdersTotal() > 0) {
+        
+        // Get order ticket
+        int Ticket = OrderSelect(OrdersTotal() - 1, SELECT_BY_POS, MODE_TRADES);
+        
+        // Check if order is long or short
+        if (OrderType() == OP_BUY) {
+            
+            // Update trailing stop level
+            if (Trailing_Stop && Price > Trailing_Stop_Level) {
+                Trailing_Stop_Level = Price - Trailing_Stop_Distance * Point;
+                OrderModify(Ticket, 0, Trailing_Stop_Level, Stop_Loss * Point, 0, Green);
+            }
+            
+            // Check for take profit level
+            if (Price >= OrderTakeProfit()) {
+                OrderClose(Ticket, Lots, Price, 0, Green);
+            }
+            
+            // Check for stop loss level
+            if (Price <= OrderStopLoss()) {
+                OrderClose(Ticket, Lots, Price, 0, Red);
+            }
+        }
+        else if (OrderType() == OP_SELL) {
+            
+            // Update trailing stop level
+            if (Trailing_Stop && Price < Trailing_Stop_Level) {
+                Trailing_Stop_Level = Price + Trailing_Stop_Distance * Point;
+                OrderModify(Ticket, 0, Trailing_Stop_Level, Stop_Loss * Point, 0, Red);
+            }
+            
+            // Check for take profit level
+            if (Price <= OrderTakeProfit()) {
+                OrderClose(Ticket, Lots, Price, 0, Green);
+            }
+            
+            // Check for stop loss level
+            if (Price >= OrderStopLoss()) {
+                OrderClose(Ticket, Lots, Price, 
